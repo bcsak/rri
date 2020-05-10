@@ -660,16 +660,18 @@ function getLongest(edgeType, cells) {
 			let lastValidNeighbour  = 0;
 			
 			all.forEach(direction => {
+				let connects = firstCell.tile.getEdge(direction).connects;
 				let neighbor = getNeighbor(firstCell, direction, cells);
-				if(neighbor.border == false && neighbor.tile != null)
+				if(connects.length > 0 && neighbor.border == false && neighbor.tile != null)
 				{
 					firstValidNeighbour++;
 				}
 			});
 						
 			all.forEach(direction => {
-				let neighbor = getNeighbor(firstCell, direction, cells);
-				if(neighbor.border == false && neighbor.tile != null)
+				let connects = lastCell.tile.getEdge(direction).connects;
+				let neighbor = getNeighbor(lastCell, direction, cells);
+				if(connects.length > 0 && neighbor.border == false && neighbor.tile != null)
 				{
 					lastValidNeighbour++;
 				}
@@ -1351,7 +1353,7 @@ class CanvasDrawContext {
         this.styleLine();
 		let tmpStrokeStyle = ctx.strokeStyle;
 		let tmpLineWidth = ctx.lineWidth;
-		ctx.strokeStyle = "rgba(0, 128, 255, 0.6)";
+		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
 		ctx.lineWidth = 15;
         let pxLength = length * TILE;
         diff *= ROAD_WIDTH / 2;
@@ -1380,7 +1382,7 @@ class CanvasDrawContext {
         const ctx = this._ctx;
 		let tmpStrokeStyle = ctx.strokeStyle;
 		let tmpLineWidth = ctx.lineWidth;
-		ctx.strokeStyle = "rgba(0, 128, 255, 0.6)";
+		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
 		ctx.lineWidth = 15;
         diff *= ROAD_WIDTH / 2;
         let R = RADIUS + diff;
@@ -1611,7 +1613,7 @@ class BoardCanvas extends Board {
         this._drawPolyline(score.rail);
         ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
         this._drawPolyline(score.road);
-		ctx.strokeStyle = "rgba(255, 255, 0, 0.75)";
+		ctx.strokeStyle = "rgba(255, 200, 16, 1)";
         this._drawPolyline(score.river);
         ctx.font = "14px sans-serif";
         ctx.fillStyle = "red";
