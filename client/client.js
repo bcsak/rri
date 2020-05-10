@@ -59,6 +59,7 @@ const RAIL = 1;
 const ROAD = 2;
 const LAKE = 3;
 const FOREST = 4;
+const RIVER  = 5;
 
 const repo$1 = {};
 const partials = {
@@ -394,6 +395,58 @@ const partials = {
         render(ctx) {
             ctx.forest();
         }
+    },
+	"river-i": {
+		edges: [
+            { type: RIVER, connects: [S] },
+            { type: NONE,  connects: [] },
+            { type: RIVER, connects: [N] },
+            { type: NONE,  connects: [] }
+        ],
+        render(ctx) {
+            ctx.river(N, 0.5);
+            ctx.river(S, 0.5);
+			
+        }
+	},
+	"river-l": {
+		edges: [
+            { type: RIVER, connects: [E] },
+            { type: RIVER, connects: [N] },
+            { type: NONE, connects: [] },
+            { type: NONE, connects: [] }
+        ],
+        render(ctx) {
+            ctx.riverArc(E, 0);
+            
+        }
+	},
+    "river-bridge-road": {
+        edges: [
+            { type: RIVER, connects: [S] },
+            { type: ROAD,  connects: [W] },
+            { type: RIVER, connects: [N] },
+            { type: ROAD,  connects: [E] }
+        ],
+        render(ctx) {
+			ctx.river(N, 0.5);
+            ctx.river(S, 0.5);
+            ctx.road (E, 0.5);
+            ctx.road (W, 0.5);
+        }
+    },
+    "river-bridge-rail": {
+        edges: [
+            { type: RIVER, connects: [S] },
+            { type: RAIL,  connects: [W] },
+            { type: RIVER, connects: [N] },
+            { type: RAIL,  connects: [E] }
+        ],
+        render(ctx) {
+			ctx.river(N, 0.5);
+            ctx.river(S, 0.5);
+            ctx.rail (E, 1);	
+        }
     }
 };
 function get$1(id) {
@@ -452,6 +505,16 @@ class Tile {
             let ourEdge = this.getEdge(dir).type;
             if (ourEdge == LAKE || ourEdge == FOREST) {
                 connections++;
+                return;
+            }
+			if (nEdge == NONE && ourEdge == RIVER) {
+				// River tile can be placed next to empty tiles
+				connections++;
+                return;
+            }
+			if (nEdge == RIVER && ourEdge == RIVER) {
+				// Use higher value for RIVER - RIVER connections, to place the tile to the board in the best orientation 
+				connections+=2;
                 return;
             }
             if (nEdge == NONE || ourEdge == NONE || nEdge == FOREST) {
@@ -581,10 +644,60 @@ function getLongest(edgeType, cells) {
     }
     let starts = cells.filter(contains);
     let bestPath = [];
+	let deadends = getDeadends(cells);
+	
     starts.forEach(cell => {
         let lockedCells = new Set();
         let ctx = { cells, edgeType, lockedCells };
         let path = getLongestFrom(cell, null, ctx);
+				
+		if(edgeType == RIVER && path.length > 0)
+		{
+			let firstCell = path[0];
+			let lastCell  = path[path.length-1];
+			
+			let firstValidNeighbour = 0;
+			let lastValidNeighbour  = 0;
+			
+			all.forEach(direction => {
+				let neighbor = getNeighbor(firstCell, direction, cells);
+				if(neighbor.border == false && neighbor.tile != null)
+				{
+					firstValidNeighbour++;
+				}
+			});
+						
+			all.forEach(direction => {
+				let neighbor = getNeighbor(firstCell, direction, cells);
+				if(neighbor.border == false && neighbor.tile != null)
+				{
+					lastValidNeighbour++;
+				}
+			});
+				
+			// Make sure that the first and the last elements in the path are the beginning and the end of the river. 
+			// The path can be only a part of the whole river
+				
+			if( firstValidNeighbour < 2 && lastValidNeighbour < 2 &&
+			    ( firstCell.x == 7 || firstCell.x == 1 || firstCell.y == 7 || firstCell.y == 1 ) &&
+				( lastCell.x  == 7 || lastCell.x  == 1 || lastCell.y  == 7 || lastCell.y  == 1 )   )
+				{
+					// To get the extra points the river has not to be dead-end
+					
+					if ( deadends.filter( de => de.cell.x == firstCell.x && de.cell.y == firstCell.y ).length == 0 &&
+						 deadends.filter( de => de.cell.x == lastCell.x  && de.cell.y == lastCell.y ).length  == 0 )
+						 {
+							// The score counting uses the length of the path
+							// Manipulate the path length to get the 3 extra points
+							
+							path.unshift(path[0]);
+							path.unshift(path[0]);
+							path.unshift(path[0]); 
+						 }
+				}
+		}
+		
+		
         if (path.length > bestPath.length) {
             bestPath = path;
         }
@@ -598,7 +711,7 @@ function isDeadend(deadend, cells) {
         return false;
     }
     let edge = tile.getEdge(deadend.direction).type;
-    if (edge != RAIL && edge != ROAD) {
+    if (edge != RAIL && edge != ROAD && edge != RIVER) {
         return false;
     }
     let neighbor = getNeighbor(cell, deadend.direction, cells);
@@ -694,7 +807,8 @@ function get$2(cells) {
         road: getLongest(ROAD, cells),
         deadends: getDeadends(cells),
         lakes: getLakes(cells),
-        forests: getForests(cells)
+        forests: getForests(cells),
+		river: getLongest(RIVER, cells),
     };
 }
 function mapExits(score) {
@@ -713,7 +827,8 @@ function sum(score) {
         + score.center
         - score.deadends.length
         + lakeScore
-        + score.forests.length;
+        + score.forests.length
+		+ score.river.length;
 }
 
 const BOARD = 7;
@@ -1208,6 +1323,99 @@ class CanvasDrawContext {
             ctx.stroke();
         }
     }
+	river(edge, length) {
+        const ctx = this._ctx;
+        let pxLength = length * TILE;
+        let vec = TO_CENTER[edge];
+        let start = toAbs(STARTS[edge]);
+        let end = [start[0] + vec[0] * pxLength, start[1] + vec[1] * pxLength];
+        switch (edge) {
+            case N:
+                ctx.clearRect(start[0] - ROAD_WIDTH / 2, start[1], ROAD_WIDTH, pxLength);
+                break;
+            case S:
+                ctx.clearRect(end[0] - ROAD_WIDTH / 2, end[1], ROAD_WIDTH, pxLength);
+                break;
+            case W:
+                ctx.clearRect(start[0], start[1] - ROAD_WIDTH / 2, pxLength, ROAD_WIDTH);
+                break;
+            case E:
+                ctx.clearRect(end[0], end[1] - ROAD_WIDTH / 2, pxLength, ROAD_WIDTH);
+                break;
+        }
+
+		this.riverLine(edge, length, 0);		
+    }
+	riverLine(edge, length, diff) {
+        const ctx = this._ctx;
+        this.styleLine();
+		let tmpStrokeStyle = ctx.strokeStyle;
+		let tmpLineWidth = ctx.lineWidth;
+		ctx.strokeStyle = "rgba(0, 128, 255, 0.6)";
+		ctx.lineWidth = 15;
+        let pxLength = length * TILE;
+        diff *= ROAD_WIDTH / 2;
+        let vec = TO_CENTER[edge];
+        let start = toAbs(STARTS[edge]);
+        let end = [start[0] + vec[0] * pxLength, start[1] + vec[1] * pxLength];
+        ctx.beginPath();
+        switch (edge) {
+            case N:
+            case S:
+                ctx.moveTo(start[0] + diff, start[1]);
+                ctx.lineTo(end[0] + diff, end[1]);
+                break;
+            case W:
+            case E:
+                ctx.moveTo(start[0], start[1] + diff);
+                ctx.lineTo(end[0], end[1] + diff);
+                break;
+        }
+        ctx.stroke();
+		
+		ctx.strokeStyle = tmpStrokeStyle;
+		ctx.lineWidth = tmpLineWidth;
+    }
+	riverArc(quadrant, diff) {
+        const ctx = this._ctx;
+		let tmpStrokeStyle = ctx.strokeStyle;
+		let tmpLineWidth = ctx.lineWidth;
+		ctx.strokeStyle = "rgba(0, 128, 255, 0.6)";
+		ctx.lineWidth = 15;
+        diff *= ROAD_WIDTH / 2;
+        let R = RADIUS + diff;
+        ctx.beginPath();
+        let start = [0, 0]; // N/S edge
+        let end = [0, 0]; // E/W edge
+        switch (quadrant) {
+            case N: // top-left
+                start[0] = end[1] = TILE / 2 + diff;
+                break;
+            case E: // top-right
+                start[0] = TILE / 2 - diff;
+                end[0] = TILE;
+                end[1] = TILE / 2 + diff;
+                break;
+            case S: // bottom-right
+                start[0] = TILE / 2 - diff;
+                start[1] = TILE;
+                end[0] = TILE;
+                end[1] = TILE / 2 - diff;
+                break;
+            case W: // bottom-left
+                end[1] = TILE / 2 - diff;
+                start[0] = TILE / 2 + diff;
+                start[1] = TILE;
+                break;
+        }
+        ctx.moveTo(...start);
+        ctx.arcTo(start[0], end[1], end[0], end[1], R);
+        ctx.lineTo(...end);
+        ctx.stroke();
+		
+		ctx.strokeStyle = tmpStrokeStyle;
+		ctx.lineWidth = tmpLineWidth;
+    }
 }
 function tree1(ctx, x, y) {
     const R = TILE / 8;
@@ -1403,6 +1611,8 @@ class BoardCanvas extends Board {
         this._drawPolyline(score.rail);
         ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
         this._drawPolyline(score.road);
+		ctx.strokeStyle = "rgba(255, 255, 0, 0.75)";
+        this._drawPolyline(score.river);
         ctx.font = "14px sans-serif";
         ctx.fillStyle = "red";
         score.deadends.forEach(deadend => {
@@ -1560,7 +1770,8 @@ const ROUNDS = {
     "normal": 7,
     "lake": 6,
     "forest": 7,
-    "demo": 1
+    "demo": 1,
+	"river": 6
 };
 function randomType(types) {
     return types[Math.floor(Math.random() * types.length)];
@@ -1586,6 +1797,12 @@ function createDice(Ctor, type, round) {
             else {
                 return createDice(Ctor, "normal", round);
             }
+		case "river":
+            return [
+                ...createDice(Ctor, "normal", round),
+                new Ctor("river", randomType(DICE_RIVER)),
+                new Ctor("river", randomType(DICE_RIVER))
+            ];
         default:
             let result = [];
             let templates = [DICE_REGULAR_1, DICE_REGULAR_1, DICE_REGULAR_1, DICE_REGULAR_2];
@@ -1606,6 +1823,7 @@ const DEMO = [
 const DICE_REGULAR_1 = ["road-i", "rail-i", "road-l", "rail-l", "road-t", "rail-t"];
 const DICE_REGULAR_2 = ["bridge", "bridge", "rail-road-i", "rail-road-i", "rail-road-l", "rail-road-l"];
 const DICE_LAKE = ["lake-1", "lake-2", "lake-3", "lake-rail", "lake-road", "lake-rail-road"];
+const DICE_RIVER = ["river-i", "river-l", "river-l", "river-l", "river-bridge-road", "river-bridge-rail"];
 
 class Dice {
     constructor(_type, _sid) {
@@ -1634,6 +1852,9 @@ class HTMLDice extends Dice {
         }
         if (this._type == "forest") {
             this.node.classList.add("forest");
+        }
+		if (this._type == "river") {
+            this.node.classList.add("river");
         }
         this._tile = new HTMLTile(this._sid, "0");
         this.node.appendChild(this._tile.node);
@@ -1896,11 +2117,12 @@ function buildTable() {
     table.appendChild(node("tbody"));
     table.tHead.insertRow().insertCell();
     const body = table.tBodies[0];
-    ["Connected exits", "Longest road", "Longest rail", "Center tiles", "Dead ends", "Smallest lake", "Forest views"].forEach(label => {
+    ["Connected exits", "Longest road", "Longest rail", "Center tiles", "Dead ends", "Smallest lake", "Forest views", "Best river"].forEach(label => {
         body.insertRow().insertCell().textContent = label;
     });
     body.rows[body.rows.length - 1].hidden = true;
     body.rows[body.rows.length - 2].hidden = true;
+	body.rows[body.rows.length - 3].hidden = true;
     table.appendChild(node("tfoot"));
     table.tFoot.insertRow().insertCell().textContent = "Score";
     return table;
@@ -1942,6 +2164,14 @@ function addColumn(table, score, name = "", active = false) {
     }
     else {
         forestRow.insertCell();
+    }
+	let riverRow = body.rows[7];
+    if (score.river.length > 0) {
+        riverRow.insertCell().textContent = score.river.length.toString();
+        riverRow.hidden = false;
+    }
+    else {
+        riverRow.insertCell();
     }
     let total = sum(score);
     const totalRow = table.tFoot.rows[0];
@@ -2425,6 +2655,7 @@ function init() {
     onClick("start-normal", () => goGame("normal"));
     onClick("start-lake", () => goGame("lake"));
     onClick("start-forest", () => goGame("forest"));
+	onClick("start-river", () => goGame("river"));
     onClick("start-multi", () => goGame("multi"));
     onClick("again", () => goIntro());
     onClick("download", () => download());
