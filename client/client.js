@@ -657,23 +657,43 @@ function getLongest(edgeType, cells) {
 			let lastCell  = path[path.length-1];
 			
 			let firstValidNeighbour = 0;
+			let firstValidBorder    = 0;
 			let lastValidNeighbour  = 0;
+			let lastValidBorder     = 0;
 			
 			all.forEach(direction => {
 				let connects = firstCell.tile.getEdge(direction).connects;
+				let type = firstCell.tile.getEdge(direction).type;
 				let neighbor = getNeighbor(firstCell, direction, cells);
-				if(connects.length > 0 && neighbor.border == false && neighbor.tile != null)
+				let neighborEdge = clamp(direction + 2);
+				
+				if(connects.length == 1 && type == RIVER &&
+				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
 				{
 					firstValidNeighbour++;
 				}
+				
+				if(connects.length == 1 && type == RIVER && neighbor.border == true)
+				{
+					firstValidBorder++;
+				}
 			});
-						
+					
 			all.forEach(direction => {
 				let connects = lastCell.tile.getEdge(direction).connects;
+				let type = lastCell.tile.getEdge(direction).type;
 				let neighbor = getNeighbor(lastCell, direction, cells);
-				if(connects.length > 0 && neighbor.border == false && neighbor.tile != null)
+				let neighborEdge = clamp(direction + 2);
+				
+				if(connects.length == 1 && type == RIVER &&
+				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
 				{
 					lastValidNeighbour++;
+				}
+				
+				if(connects.length == 1 && type == RIVER && neighbor.border == true)
+				{
+					lastValidBorder++;
 				}
 			});
 				
@@ -681,24 +701,19 @@ function getLongest(edgeType, cells) {
 			// The path can be only a part of the whole river
 				
 			if( firstValidNeighbour < 2 && lastValidNeighbour < 2 &&
-			    ( firstCell.x == 7 || firstCell.x == 1 || firstCell.y == 7 || firstCell.y == 1 ) &&
-				( lastCell.x  == 7 || lastCell.x  == 1 || lastCell.y  == 7 || lastCell.y  == 1 )   )
-				{
-					// To get the extra points the river has not to be dead-end
-					
-					if ( deadends.filter( de => de.cell.x == firstCell.x && de.cell.y == firstCell.y ).length == 0 &&
-						 deadends.filter( de => de.cell.x == lastCell.x  && de.cell.y == lastCell.y ).length  == 0 )
-						 {
-							// The score counting uses the length of the path
-							// Manipulate the path length to get the 3 extra points
-							
-							path.unshift(path[0]);
-							path.unshift(path[0]);
-							path.unshift(path[0]); 
-						 }
-				}
+			    firstValidNeighbour + firstValidBorder == 2 && 
+				lastValidNeighbour  + lastValidBorder  == 2 )
+			{
+				// To get the extra points the river has not to be dead-end
+				
+				// The score counting uses the length of the path
+				// Manipulate the path length to get the 3 extra points
+						
+				path.unshift(path[0]);
+				path.unshift(path[0]);
+				path.unshift(path[0]); 
+			}
 		}
-		
 		
         if (path.length > bestPath.length) {
             bestPath = path;
