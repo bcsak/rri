@@ -340,6 +340,109 @@ export default class CanvasDrawContext implements DrawContext {
 			ctx.stroke();
 		}
 	}
+
+	river(edge: Direction, length: number) {
+		const ctx = this._ctx;
+		let pxLength = length * TILE;
+		let vec = TO_CENTER[edge];
+		let start = toAbs(STARTS[edge]);
+		let end = [start[0] + vec[0] * pxLength, start[1] + vec[1] * pxLength];
+		switch (edge) {
+			case N:
+				ctx.clearRect(start[0] - ROAD_WIDTH / 2, start[1], ROAD_WIDTH, pxLength);
+				break;
+			case S:
+				ctx.clearRect(end[0] - ROAD_WIDTH / 2, end[1], ROAD_WIDTH, pxLength);
+				break;
+			case W:
+				ctx.clearRect(start[0], start[1] - ROAD_WIDTH / 2, pxLength, ROAD_WIDTH);
+				break;
+			case E:
+				ctx.clearRect(end[0], end[1] - ROAD_WIDTH / 2, pxLength, ROAD_WIDTH);
+				break;
+		}
+
+		this.riverLine(edge, length, 0);		
+	}
+
+	riverLine(edge: Direction, length: number, diff: number) {
+		const ctx = this._ctx;
+		this.styleLine();
+		let tmpStrokeStyle = ctx.strokeStyle;
+		let tmpLineWidth = ctx.lineWidth;
+		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
+		ctx.lineWidth = 15;
+		let pxLength = length * TILE;
+		diff *= ROAD_WIDTH / 2;
+		let vec = TO_CENTER[edge];
+		let start = toAbs(STARTS[edge]);
+		let end = [start[0] + vec[0] * pxLength, start[1] + vec[1] * pxLength];
+		ctx.beginPath();
+		switch (edge) {
+			case N:
+			case S:
+				ctx.moveTo(start[0] + diff, start[1]);
+				ctx.lineTo(end[0] + diff, end[1]);
+				break;
+			case W:
+			case E:
+				ctx.moveTo(start[0], start[1] + diff);
+				ctx.lineTo(end[0], end[1] + diff);
+				break;
+		}
+		ctx.stroke();
+		
+		ctx.strokeStyle = tmpStrokeStyle;
+		ctx.lineWidth = tmpLineWidth;
+	}
+	
+	riverArc(quadrant: Direction, diff: number) {
+		const ctx = this._ctx;
+
+		diff *= ROAD_WIDTH / 2;
+		let R = RADIUS + diff;
+		ctx.beginPath();
+
+		let tmpStrokeStyle = ctx.strokeStyle;
+		let tmpLineWidth = ctx.lineWidth;
+		
+		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
+		ctx.lineWidth = 15;
+		
+		let start = [0, 0] as Point; // N/S edge
+		let end = [0, 0] as Point;   // E/W edge
+		
+		switch (quadrant) {
+			case N: // top-left
+				start[0] = end[1] = TILE / 2 + diff;
+				break;
+			case E: // top-right
+				start[0] = TILE / 2 - diff;
+				end[0] = TILE;
+				end[1] = TILE / 2 + diff;
+				break;
+			case S: // bottom-right
+				start[0] = TILE / 2 - diff;
+				start[1] = TILE;
+				end[0] = TILE;
+				end[1] = TILE / 2 - diff;
+				break;
+			case W: // bottom-left
+				end[1] = TILE / 2 - diff;
+				start[0] = TILE / 2 + diff;
+				start[1] = TILE;
+				break;
+		}
+
+		ctx.moveTo(...start);
+		ctx.arcTo(start[0], end[1], end[0], end[1], R);
+		ctx.lineTo(...end);
+
+		ctx.stroke();
+		
+		ctx.strokeStyle = tmpStrokeStyle;
+		ctx.lineWidth = tmpLineWidth;
+	}
 }
 
 function tree1(ctx: CanvasRenderingContext2D, x: number, y: number) {

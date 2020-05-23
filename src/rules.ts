@@ -5,13 +5,14 @@ interface Type<T> {
 	new(type: DiceType, sid: string): T;
 }
 
-export type GameType = "normal" | "lake" | "forest" | "demo";
+export type GameType = "normal" | "lake" | "forest" | "demo" | "river";
 
 export const ROUNDS: {[type in GameType]: number} = {
 	"normal": 7,
 	"lake": 6,
 	"forest": 7,
-	"demo": 1
+	"demo": 1,
+	"river": 6
 }
 
 function randomType(types: string[]) {
@@ -42,6 +43,21 @@ export function createDice<T extends Dice>(Ctor: Type<T>, type: GameType, round:
 			}
 		break;
 
+		case "river":
+			return [
+				...createDice(Ctor, "normal", round),
+				new Ctor("river", randomType(DICE_RIVER)),
+				new Ctor("river", randomType(DICE_RIVER))
+			];
+		break;
+
+		case "river":
+			return [
+				...createDice(Ctor, "normal", round),
+				new Ctor("river", randomType(DICE_RIVER)),
+				new Ctor("river", randomType(DICE_RIVER))
+			];
+
 		default:
 			let result = [];
 			let templates = [DICE_REGULAR_1, DICE_REGULAR_1, DICE_REGULAR_1, DICE_REGULAR_2];
@@ -65,3 +81,4 @@ const DEMO = [
 const DICE_REGULAR_1 = ["road-i", "rail-i", "road-l", "rail-l", "road-t", "rail-t"];
 const DICE_REGULAR_2 = ["bridge", "bridge", "rail-road-i", "rail-road-i", "rail-road-l", "rail-road-l"];
 const DICE_LAKE = ["lake-1", "lake-2", "lake-3", "lake-rail", "lake-road", "lake-rail-road"];
+const DICE_RIVER = ["river-i", "river-l", "river-l", "river-l", "river-bridge-road", "river-bridge-rail"];

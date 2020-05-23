@@ -1,6 +1,6 @@
 import CellRepo, { Cell } from "./cell-repo.js";
 import { Direction, clamp, all as allDirections, Vector } from "./direction.js";
-import { NONE, ROAD, RAIL, LAKE, FOREST, EdgeType } from "./edge.js";
+import { NONE, ROAD, RAIL, LAKE, FOREST, RIVER, EdgeType } from "./edge.js";
 
 
 export interface Score {
@@ -11,6 +11,7 @@ export interface Score {
 	rail: Cell[];
 	lakes: number[];
 	forests: Cell[];
+	river: Cell[];
 }
 
 interface Deadend {
@@ -139,10 +140,79 @@ function getLongest(edgeType: EdgeType, cells: CellRepo) {
 	let starts = cells.filter(contains);
 
 	let bestPath: Cell[] = [];
+
 	starts.forEach(cell => {
 		let lockedCells = new Set<Cell>();
 		let ctx: LongestPathContext = { cells, edgeType, lockedCells };
 		let path = getLongestFrom(cell, null, ctx);
+
+		if(edgeType == RIVER && path.length > 0)
+		{
+			let firstCell = path[0];
+			let lastCell  = path[path.length-1];
+			
+			let firstValidNeighbour = 0;
+			let firstValidBorder    = 0;
+			let lastValidNeighbour  = 0;
+			let lastValidBorder     = 0;
+			
+			allDirections.forEach(direction => {
+				if(!firstCell.tile){ return; }
+				let connects = firstCell.tile.getEdge(direction).connects;
+				let type = firstCell.tile.getEdge(direction).type;
+				let neighbor = getNeighbor(firstCell, direction, cells);
+				let neighborEdge = clamp(direction + 2);
+				
+				if(connects.length == 1 && type == RIVER &&
+				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
+				{
+					firstValidNeighbour++;
+				}
+				
+				if(connects.length == 1 && type == RIVER && neighbor.border == true)
+				{
+					firstValidBorder++;
+				}
+			});
+					
+			allDirections.forEach(direction => {
+				if(!lastCell.tile){ return; }
+				
+				let connects = lastCell.tile.getEdge(direction).connects;
+				let type = lastCell.tile.getEdge(direction).type;
+				let neighbor = getNeighbor(lastCell, direction, cells);
+				let neighborEdge = clamp(direction + 2);
+				
+				if(connects.length == 1 && type == RIVER &&
+				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
+				{
+					lastValidNeighbour++;
+				}
+				
+				if(connects.length == 1 && type == RIVER && neighbor.border == true)
+				{
+					lastValidBorder++;
+				}
+			});
+				
+			// Make sure that the first and the last elements in the path are the beginning and the end of the river. 
+			// The path can be only a part of the whole river
+				
+			if( firstValidNeighbour < 2 && lastValidNeighbour < 2 &&
+			    firstValidNeighbour + firstValidBorder == 2 && 
+				lastValidNeighbour  + lastValidBorder  == 2 )
+			{
+				// To get the extra points the river has not to be dead-end
+				
+				// The score counting uses the length of the path
+				// Manipulate the path length to get the 3 extra points
+						
+				path.unshift(path[0]);
+				path.unshift(path[0]);
+				path.unshift(path[0]); 
+			}
+		}
+
 		if (path.length > bestPath.length) { bestPath = path; }
 	});
 
@@ -155,7 +225,7 @@ function isDeadend(deadend: Deadend, cells: CellRepo) {
 	if (!tile) { return false; }
 
 	let edge = tile.getEdge(deadend.direction).type;
-	if (edge != RAIL && edge != ROAD) { return false; }
+	if (edge != RAIL && edge != ROAD && edge != RIVER) { return false; }
 
 	let neighbor = getNeighbor(cell, deadend.direction, cells);
 	if (neighbor.border) { return false; }
@@ -251,7 +321,8 @@ export function get(cells: CellRepo): Score {
 		road: getLongest(ROAD, cells),
 		deadends: getDeadends(cells),
 		lakes: getLakes(cells),
-		forests: getForests(cells)
+		forests: getForests(cells),
+		river: getLongest(RIVER, cells)
 	}
 }
 
@@ -274,5 +345,6 @@ export function sum(score: Score) {
 		+ score.center
 		- score.deadends.length
 		+ lakeScore
-		+ score.forests.length;
+		+ score.forests.length
+		+ score.river.length;
 }

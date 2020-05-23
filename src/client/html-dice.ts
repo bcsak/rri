@@ -16,6 +16,7 @@ export default class HTMLDice extends Dice {
 
 		if (this._type == "lake") { this.node.classList.add("lake"); }
 		if (this._type == "forest") { this.node.classList.add("forest"); }
+		if (this._type == "river") { this.node.classList.add("river"); }
 
 		this._tile = new HTMLTile(this._sid, "0");
 		this.node.appendChild(this._tile.node);

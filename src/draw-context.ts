@@ -16,4 +16,7 @@ export default interface DrawContext {
 	styleRailTicks(d: number[], o:number): void;
 	lake(p: Point[]): void;
 	forest(): void;
+	river(e: Direction, l: number): void;
+	riverLine(e: Direction, l: number, d: number): void;
+ 	riverArc(e: Direction, diff: number): void;
 }

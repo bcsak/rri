@@ -11,12 +11,13 @@ function buildTable() {
 	table.tHead!.insertRow().insertCell();
 
 	const body = table.tBodies[0];
-	["Connected exits", "Longest road", "Longest rail", "Center tiles", "Dead ends", "Smallest lake", "Forest views"].forEach(label => {
+	["Connected exits", "Longest road", "Longest rail", "Center tiles", "Dead ends", "Smallest lake", "Forest views", "Best river"].forEach(label => {
 		body.insertRow().insertCell().textContent = label;
 	});
 
 	body.rows[body.rows.length-1].hidden = true;
 	body.rows[body.rows.length-2].hidden = true;
+	body.rows[body.rows.length-3].hidden = true;
 
 	table.appendChild(html.node("tfoot"));
 	table.tFoot!.insertRow().insertCell().textContent = "Score";
@@ -65,6 +66,15 @@ function addColumn(table: HTMLTableElement, score: Score, name="", active=false)
 		forestRow.insertCell();
 	}
 
+	let riverRow = body.rows[7];
+	if (score.river.length > 0) {
+		riverRow.insertCell().textContent = score.river.length.toString();
+		riverRow.hidden = false;
+	}
+	else {
+		riverRow.insertCell();
+	}
+	
 	let total = sum(score);
 
 	const totalRow = table.tFoot!.rows[0];

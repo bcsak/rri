@@ -1,7 +1,7 @@
 import { get as getTransform } from "./transform.js";
 import { get as getShape } from "./shapes.js";
 import { Direction } from "./direction.js";
-import { Edge, EdgeType, NONE, LAKE, FOREST } from "./edge.js";
+import { Edge, EdgeType, NONE, LAKE, FOREST, RIVER } from "./edge.js";
 
 
 export interface TileData {
@@ -46,6 +46,16 @@ export default class Tile {
 			let ourEdge = this.getEdge(dir as Direction).type;
 			if (ourEdge == LAKE || ourEdge == FOREST) {
 				connections++;
+				return;
+			}
+			if (nEdge == NONE && ourEdge == RIVER) {
+				// River tile can be placed next to empty tiles
+				connections++;
+				return;
+			}
+			if (nEdge == RIVER && ourEdge == RIVER) {
+				// Use higher value for RIVER - RIVER connections, to place the tile to the board in the best orientation 
+				connections+=2;
 				return;
 			}
 			if (nEdge == NONE || ourEdge == NONE || nEdge == FOREST) { return; }

@@ -59,7 +59,7 @@ const RAIL = 1;
 const ROAD = 2;
 const LAKE = 3;
 const FOREST = 4;
-const RIVER  = 5;
+const RIVER = 5;
 
 const repo$1 = {};
 const partials = {
@@ -396,21 +396,20 @@ const partials = {
             ctx.forest();
         }
     },
-	"river-i": {
-		edges: [
+    "river-i": {
+        edges: [
             { type: RIVER, connects: [S] },
-            { type: NONE,  connects: [] },
+            { type: NONE, connects: [] },
             { type: RIVER, connects: [N] },
-            { type: NONE,  connects: [] }
+            { type: NONE, connects: [] }
         ],
         render(ctx) {
             ctx.river(N, 0.5);
             ctx.river(S, 0.5);
-			
         }
-	},
-	"river-l": {
-		edges: [
+    },
+    "river-l": {
+        edges: [
             { type: RIVER, connects: [E] },
             { type: RIVER, connects: [N] },
             { type: NONE, connects: [] },
@@ -418,34 +417,33 @@ const partials = {
         ],
         render(ctx) {
             ctx.riverArc(E, 0);
-            
         }
-	},
+    },
     "river-bridge-road": {
         edges: [
             { type: RIVER, connects: [S] },
-            { type: ROAD,  connects: [W] },
+            { type: ROAD, connects: [W] },
             { type: RIVER, connects: [N] },
-            { type: ROAD,  connects: [E] }
+            { type: ROAD, connects: [E] }
         ],
         render(ctx) {
-			ctx.river(N, 0.5);
+            ctx.river(N, 0.5);
             ctx.river(S, 0.5);
-            ctx.road (E, 0.5);
-            ctx.road (W, 0.5);
+            ctx.road(E, 0.5);
+            ctx.road(W, 0.5);
         }
     },
     "river-bridge-rail": {
         edges: [
             { type: RIVER, connects: [S] },
-            { type: RAIL,  connects: [W] },
+            { type: RAIL, connects: [W] },
             { type: RIVER, connects: [N] },
-            { type: RAIL,  connects: [E] }
+            { type: RAIL, connects: [E] }
         ],
         render(ctx) {
-			ctx.river(N, 0.5);
+            ctx.river(N, 0.5);
             ctx.river(S, 0.5);
-            ctx.rail (E, 1);	
+            ctx.rail(E, 1);
         }
     }
 };
@@ -507,14 +505,14 @@ class Tile {
                 connections++;
                 return;
             }
-			if (nEdge == NONE && ourEdge == RIVER) {
-				// River tile can be placed next to empty tiles
-				connections++;
+            if (nEdge == NONE && ourEdge == RIVER) {
+                // River tile can be placed next to empty tiles
+                connections++;
                 return;
             }
-			if (nEdge == RIVER && ourEdge == RIVER) {
-				// Use higher value for RIVER - RIVER connections, to place the tile to the board in the best orientation 
-				connections+=2;
+            if (nEdge == RIVER && ourEdge == RIVER) {
+                // Use higher value for RIVER - RIVER connections, to place the tile to the board in the best orientation 
+                connections += 2;
                 return;
             }
             if (nEdge == NONE || ourEdge == NONE || nEdge == FOREST) {
@@ -644,77 +642,62 @@ function getLongest(edgeType, cells) {
     }
     let starts = cells.filter(contains);
     let bestPath = [];
-	let deadends = getDeadends(cells);
-	
     starts.forEach(cell => {
         let lockedCells = new Set();
         let ctx = { cells, edgeType, lockedCells };
         let path = getLongestFrom(cell, null, ctx);
-				
-		if(edgeType == RIVER && path.length > 0)
-		{
-			let firstCell = path[0];
-			let lastCell  = path[path.length-1];
-			
-			let firstValidNeighbour = 0;
-			let firstValidBorder    = 0;
-			let lastValidNeighbour  = 0;
-			let lastValidBorder     = 0;
-			
-			all.forEach(direction => {
-				let connects = firstCell.tile.getEdge(direction).connects;
-				let type = firstCell.tile.getEdge(direction).type;
-				let neighbor = getNeighbor(firstCell, direction, cells);
-				let neighborEdge = clamp(direction + 2);
-				
-				if(connects.length == 1 && type == RIVER &&
-				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
-				{
-					firstValidNeighbour++;
-				}
-				
-				if(connects.length == 1 && type == RIVER && neighbor.border == true)
-				{
-					firstValidBorder++;
-				}
-			});
-					
-			all.forEach(direction => {
-				let connects = lastCell.tile.getEdge(direction).connects;
-				let type = lastCell.tile.getEdge(direction).type;
-				let neighbor = getNeighbor(lastCell, direction, cells);
-				let neighborEdge = clamp(direction + 2);
-				
-				if(connects.length == 1 && type == RIVER &&
-				   neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER)
-				{
-					lastValidNeighbour++;
-				}
-				
-				if(connects.length == 1 && type == RIVER && neighbor.border == true)
-				{
-					lastValidBorder++;
-				}
-			});
-				
-			// Make sure that the first and the last elements in the path are the beginning and the end of the river. 
-			// The path can be only a part of the whole river
-				
-			if( firstValidNeighbour < 2 && lastValidNeighbour < 2 &&
-			    firstValidNeighbour + firstValidBorder == 2 && 
-				lastValidNeighbour  + lastValidBorder  == 2 )
-			{
-				// To get the extra points the river has not to be dead-end
-				
-				// The score counting uses the length of the path
-				// Manipulate the path length to get the 3 extra points
-						
-				path.unshift(path[0]);
-				path.unshift(path[0]);
-				path.unshift(path[0]); 
-			}
-		}
-		
+        if (edgeType == RIVER && path.length > 0) {
+            let firstCell = path[0];
+            let lastCell = path[path.length - 1];
+            let firstValidNeighbour = 0;
+            let firstValidBorder = 0;
+            let lastValidNeighbour = 0;
+            let lastValidBorder = 0;
+            all.forEach(direction => {
+                if (!firstCell.tile) {
+                    return;
+                }
+                let connects = firstCell.tile.getEdge(direction).connects;
+                let type = firstCell.tile.getEdge(direction).type;
+                let neighbor = getNeighbor(firstCell, direction, cells);
+                let neighborEdge = clamp(direction + 2);
+                if (connects.length == 1 && type == RIVER &&
+                    neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER) {
+                    firstValidNeighbour++;
+                }
+                if (connects.length == 1 && type == RIVER && neighbor.border == true) {
+                    firstValidBorder++;
+                }
+            });
+            all.forEach(direction => {
+                if (!lastCell.tile) {
+                    return;
+                }
+                let connects = lastCell.tile.getEdge(direction).connects;
+                let type = lastCell.tile.getEdge(direction).type;
+                let neighbor = getNeighbor(lastCell, direction, cells);
+                let neighborEdge = clamp(direction + 2);
+                if (connects.length == 1 && type == RIVER &&
+                    neighbor.border == false && neighbor.tile != null && neighbor.tile.getEdge(neighborEdge).type == RIVER) {
+                    lastValidNeighbour++;
+                }
+                if (connects.length == 1 && type == RIVER && neighbor.border == true) {
+                    lastValidBorder++;
+                }
+            });
+            // Make sure that the first and the last elements in the path are the beginning and the end of the river. 
+            // The path can be only a part of the whole river
+            if (firstValidNeighbour < 2 && lastValidNeighbour < 2 &&
+                firstValidNeighbour + firstValidBorder == 2 &&
+                lastValidNeighbour + lastValidBorder == 2) {
+                // To get the extra points the river has not to be dead-end
+                // The score counting uses the length of the path
+                // Manipulate the path length to get the 3 extra points
+                path.unshift(path[0]);
+                path.unshift(path[0]);
+                path.unshift(path[0]);
+            }
+        }
         if (path.length > bestPath.length) {
             bestPath = path;
         }
@@ -825,7 +808,7 @@ function get$2(cells) {
         deadends: getDeadends(cells),
         lakes: getLakes(cells),
         forests: getForests(cells),
-		river: getLongest(RIVER, cells),
+        river: getLongest(RIVER, cells)
     };
 }
 function mapExits(score) {
@@ -845,7 +828,7 @@ function sum(score) {
         - score.deadends.length
         + lakeScore
         + score.forests.length
-		+ score.river.length;
+        + score.river.length;
 }
 
 const BOARD = 7;
@@ -1340,7 +1323,7 @@ class CanvasDrawContext {
             ctx.stroke();
         }
     }
-	river(edge, length) {
+    river(edge, length) {
         const ctx = this._ctx;
         let pxLength = length * TILE;
         let vec = TO_CENTER[edge];
@@ -1360,16 +1343,15 @@ class CanvasDrawContext {
                 ctx.clearRect(end[0], end[1] - ROAD_WIDTH / 2, pxLength, ROAD_WIDTH);
                 break;
         }
-
-		this.riverLine(edge, length, 0);		
+        this.riverLine(edge, length, 0);
     }
-	riverLine(edge, length, diff) {
+    riverLine(edge, length, diff) {
         const ctx = this._ctx;
         this.styleLine();
-		let tmpStrokeStyle = ctx.strokeStyle;
-		let tmpLineWidth = ctx.lineWidth;
-		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
-		ctx.lineWidth = 15;
+        let tmpStrokeStyle = ctx.strokeStyle;
+        let tmpLineWidth = ctx.lineWidth;
+        ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
+        ctx.lineWidth = 15;
         let pxLength = length * TILE;
         diff *= ROAD_WIDTH / 2;
         let vec = TO_CENTER[edge];
@@ -1389,19 +1371,18 @@ class CanvasDrawContext {
                 break;
         }
         ctx.stroke();
-		
-		ctx.strokeStyle = tmpStrokeStyle;
-		ctx.lineWidth = tmpLineWidth;
+        ctx.strokeStyle = tmpStrokeStyle;
+        ctx.lineWidth = tmpLineWidth;
     }
-	riverArc(quadrant, diff) {
+    riverArc(quadrant, diff) {
         const ctx = this._ctx;
-		let tmpStrokeStyle = ctx.strokeStyle;
-		let tmpLineWidth = ctx.lineWidth;
-		ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
-		ctx.lineWidth = 15;
         diff *= ROAD_WIDTH / 2;
         let R = RADIUS + diff;
         ctx.beginPath();
+        let tmpStrokeStyle = ctx.strokeStyle;
+        let tmpLineWidth = ctx.lineWidth;
+        ctx.strokeStyle = "rgba(0, 64, 128, 0.9)";
+        ctx.lineWidth = 15;
         let start = [0, 0]; // N/S edge
         let end = [0, 0]; // E/W edge
         switch (quadrant) {
@@ -1429,9 +1410,8 @@ class CanvasDrawContext {
         ctx.arcTo(start[0], end[1], end[0], end[1], R);
         ctx.lineTo(...end);
         ctx.stroke();
-		
-		ctx.strokeStyle = tmpStrokeStyle;
-		ctx.lineWidth = tmpLineWidth;
+        ctx.strokeStyle = tmpStrokeStyle;
+        ctx.lineWidth = tmpLineWidth;
     }
 }
 function tree1(ctx, x, y) {
@@ -1628,7 +1608,7 @@ class BoardCanvas extends Board {
         this._drawPolyline(score.rail);
         ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
         this._drawPolyline(score.road);
-		ctx.strokeStyle = "rgba(255, 200, 16, 1)";
+        ctx.strokeStyle = "rgba(255, 200, 16, 1)";
         this._drawPolyline(score.river);
         ctx.font = "14px sans-serif";
         ctx.fillStyle = "red";
@@ -1788,7 +1768,7 @@ const ROUNDS = {
     "lake": 6,
     "forest": 7,
     "demo": 1,
-	"river": 6
+    "river": 6
 };
 function randomType(types) {
     return types[Math.floor(Math.random() * types.length)];
@@ -1814,7 +1794,13 @@ function createDice(Ctor, type, round) {
             else {
                 return createDice(Ctor, "normal", round);
             }
-		case "river":
+        case "river":
+            return [
+                ...createDice(Ctor, "normal", round),
+                new Ctor("river", randomType(DICE_RIVER)),
+                new Ctor("river", randomType(DICE_RIVER))
+            ];
+        case "river":
             return [
                 ...createDice(Ctor, "normal", round),
                 new Ctor("river", randomType(DICE_RIVER)),
@@ -1870,7 +1856,7 @@ class HTMLDice extends Dice {
         if (this._type == "forest") {
             this.node.classList.add("forest");
         }
-		if (this._type == "river") {
+        if (this._type == "river") {
             this.node.classList.add("river");
         }
         this._tile = new HTMLTile(this._sid, "0");
@@ -2139,7 +2125,7 @@ function buildTable() {
     });
     body.rows[body.rows.length - 1].hidden = true;
     body.rows[body.rows.length - 2].hidden = true;
-	body.rows[body.rows.length - 3].hidden = true;
+    body.rows[body.rows.length - 3].hidden = true;
     table.appendChild(node("tfoot"));
     table.tFoot.insertRow().insertCell().textContent = "Score";
     return table;
@@ -2182,7 +2168,7 @@ function addColumn(table, score, name = "", active = false) {
     else {
         forestRow.insertCell();
     }
-	let riverRow = body.rows[7];
+    let riverRow = body.rows[7];
     if (score.river.length > 0) {
         riverRow.insertCell().textContent = score.river.length.toString();
         riverRow.hidden = false;
@@ -2381,6 +2367,7 @@ class MultiGame extends Game {
         setup.querySelector("[name=create-normal]").addEventListener("click", _ => this._joinOrCreate("normal"));
         setup.querySelector("[name=create-lake]").addEventListener("click", _ => this._joinOrCreate("lake"));
         setup.querySelector("[name=create-forest]").addEventListener("click", _ => this._joinOrCreate("forest"));
+        setup.querySelector("[name=create-river]").addEventListener("click", _ => this._joinOrCreate("river"));
         const lobby = this._nodes["lobby"];
         lobby.querySelector("button").addEventListener("click", _ => this._rpc.call("start-game", []));
     }
@@ -2672,7 +2659,7 @@ function init() {
     onClick("start-normal", () => goGame("normal"));
     onClick("start-lake", () => goGame("lake"));
     onClick("start-forest", () => goGame("forest"));
-	onClick("start-river", () => goGame("river"));
+    onClick("start-river", () => goGame("river"));
     onClick("start-multi", () => goGame("multi"));
     onClick("again", () => goIntro());
     onClick("download", () => download());
